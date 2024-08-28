@@ -80,14 +80,14 @@ let objs = {};
       await delay(500);
       const positionFieldUsername = await handleGetPosition("#email");
       await page.mouse.move(positionFieldUsername.x, positionFieldUsername.y);
-      await page.focus("#email");
+      // await page.focus("#email");
       await username.type(accounts.username, { delay: 201 });
 
       await delay(300);
 
       const positionFieldPassword = await handleGetPosition("#pass");
       await page.mouse.move(positionFieldPassword.x, positionFieldPassword.y);
-      await page.focus("#pass");
+      // await page.focus("#pass");
       await password.type(accounts.password, { delay: 301 });
 
       await delay(1000);
@@ -122,7 +122,7 @@ let objs = {};
 
     if (codeEnter) {
       await delay(300);
-      await page.focus("#email");
+      // await page.focus("#email");
       await codeEnter.click();
 
       await delay(1200);
@@ -173,7 +173,7 @@ let objs = {};
         positionFieldTwoFactorCode.x,
         positionFieldTwoFactorCode.y
       );
-      await page.focus("#approvals_code");
+      // await page.focus("#approvals_code");
       await twoFactorInput.type(twoFactorCode, { delay: 201 });
     }
 
@@ -406,7 +406,7 @@ let objs = {};
         "input[name='firstName']"
       );
       await page.mouse.move(positionFieldNameCard.x, positionFieldNameCard.y);
-      await page.focus("input[name='firstName']");
+      // await page.focus("input[name='firstName']");
       await delay(500);
       await nameCard.type(objs.nameCard, { delay: 101 });
     }
@@ -418,7 +418,7 @@ let objs = {};
         positionFieldNumberCard.x,
         positionFieldNumberCard.y
       );
-      await page.focus("input[name='cardNumber']");
+      // await page.focus("input[name='cardNumber']");
       await delay(500);
       await numberCard.type(objs.numberCard, { delay: 301 });
     }
@@ -427,7 +427,7 @@ let objs = {};
         "input[name='expiration']"
       );
       await page.mouse.move(positionFieldDateCard.x, positionFieldDateCard.y);
-      await page.focus("input[name='expiration']");
+      // await page.focus("input[name='expiration']");
       await delay(500);
       await dateCard.type(objs.dateCard, { delay: 101 });
     }
@@ -436,7 +436,7 @@ let objs = {};
         "input[name='securityCode']"
       );
       await page.mouse.move(positionFieldCodeCard.x, positionFieldCodeCard.y);
-      await page.focus("input[name='securityCode']");
+      // await page.focus("input[name='securityCode']");
       await delay(500);
       await codeCard.type(objs.codeCard, { delay: 201 });
     }
@@ -485,7 +485,7 @@ let objs = {};
             positionFieldNameCard.x,
             positionFieldNameCard.y
           );
-          await page.focus("input[name='firstName']");
+          // await page.focus("input[name='firstName']");
           await delay(500);
           await nameCard.type(objs.nameCard, { delay: 101 });
         }
@@ -497,7 +497,7 @@ let objs = {};
             positionFieldNumberCard.x,
             positionFieldNumberCard.y
           );
-          await page.focus("input[name='cardNumber']");
+          // await page.focus("input[name='cardNumber']");
           await delay(500);
           await numberCard.type(objs.numberCard, { delay: 301 });
         }
@@ -509,7 +509,7 @@ let objs = {};
             positionFieldDateCard.x,
             positionFieldDateCard.y
           );
-          await page.focus("input[name='expiration']");
+          // await page.focus("input[name='expiration']");
           await delay(500);
           await dateCard.type(objs.dateCard, { delay: 101 });
         }
@@ -521,7 +521,7 @@ let objs = {};
             positionFieldCodeCard.x,
             positionFieldCodeCard.y
           );
-          await page.focus("input[name='securityCode']");
+          // await page.focus("input[name='securityCode']");
           await delay(500);
           await codeCard.type(objs.codeCard, { delay: 201 });
         }

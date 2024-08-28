@@ -1,7 +1,7 @@
 const accounts = {
-  username: "100093695934748",
+  username: "100079192008950",
   password: "Anhtiep96",
-  secret: "V7OSCJQZCIALCYM7T7DDYIQLIMNK4MB4", // Secret key cho mã 2FA
+  secret: "WRECDF34AHFN3SJSS4NZK3ASN3R3M42W", // Secret key cho mã 2FA
 };
 
 export default accounts;
