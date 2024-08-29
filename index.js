@@ -3,6 +3,7 @@ import speakeasy from "speakeasy";
 import puppeteer from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
+import userAgents from "./data/userAgents.js";
 import accounts from "./data/accounts.js";
 
 puppeteer.use(StealthPlugin());
@@ -17,9 +18,38 @@ let objs = {};
 (async () => {
   const browser = await puppeteer.launch({
     headless: false,
-    defaultViewport: null,
+    devtools: true,
   });
   const page = await browser.newPage();
+
+  await page.setUserAgent(
+    userAgents[Math.floor(Math.random() * userAgents.length)]
+  );
+  await page.setDefaultNavigationTimeout(100000);
+  await page.setViewport({
+    width: 1280,
+    height: 800,
+  });
+  await page.evaluateOnNewDocument(() => {
+    // Thay đổi navigator.plugins
+    Object.defineProperty(navigator, "plugins", {
+      get: () => [
+        { name: "Chrome PDF Plugin", filename: "pdf.dll" },
+        { name: "Native Client", filename: "nativeclient.dll" },
+        { name: "Shockwave Flash", filename: "flash.dll" },
+      ],
+    });
+
+    // Thay đổi navigator.languages
+    Object.defineProperty(navigator, "languages", {
+      get: () => ["vi-VN", "vi"], // Thay đổi thành tiếng Việt
+    });
+
+    // Ẩn thuộc tính navigator.webdriver
+    Object.defineProperty(navigator, "webdriver", {
+      get: () => undefined,
+    });
+  });
   await page.goto("https://facebook.com/");
   await page.setJavaScriptEnabled(true);
 
@@ -76,7 +106,6 @@ let objs = {};
       .catch(() => null);
 
     if (username && password && btnLogin) {
-      console.log(username);
       await delay(500);
       const positionFieldUsername = await handleGetPosition("#email");
       await page.mouse.move(positionFieldUsername.x, positionFieldUsername.y);
@@ -93,7 +122,10 @@ let objs = {};
       await delay(1000);
       const positionBtnLogin = await handleGetPosition('button[name="login"]');
       await page.mouse.move(positionBtnLogin.x, positionBtnLogin.y);
-      await Promise.all([page.waitForNavigation(), btnLogin.click()]);
+      await Promise.all([
+        page.waitForNavigation(),
+        btnLogin.evaluate((b) => b.click()),
+      ]);
       break; // Thoát vòng lặp nếu đăng nhập thành công
     } else {
       await delay(1000); // Chờ một chút trước khi thử lại
@@ -113,46 +145,56 @@ let objs = {};
       "div[data-visualcompletion='ignore'][role='none']"
     );
     await page.mouse.move(positionTryWays.x, positionTryWays.y);
-    await tryWays.click();
+    await tryWays.evaluate((b) => b.click());
 
     await delay(2000);
-    const codeEnter = await page.waitForSelector(
-      "input[aria-checked='false'][name='unused']"
-    );
+    const codeEnter = await page
+      .waitForSelector(
+        "input[aria-checked='false'][name='unused'][type='radio']"
+      )
+      .catch(() => null);
 
     if (codeEnter) {
       await delay(300);
       // await page.focus("#email");
-      await codeEnter.click();
+      await codeEnter.evaluate((b) => b.click());
 
       await delay(1200);
-      const btnNext = await page.waitForSelector(
-        "::-p-xpath(/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div/div[2]/div/div/div/div/div/div/div[4]/div[3]/div/div/div/div/div/div/div)"
-      );
+      const btnNext = await page
+        .waitForSelector(
+          "::-p-xpath(/html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div/div[2]/div/div/div/div/div/div/div[4]/div[3]/div/div/div/div/div/div/div)"
+        )
+        .catch(() => null);
 
       if (btnNext) {
-        await btnNext.click();
+        await btnNext.evaluate((b) => b.click());
 
         await delay(500);
-        const codeInput = await page.waitForSelector("input[type='text']");
+        const codeInput = await page
+          .waitForSelector("input[type='text']")
+          .catch(() => null);
         if (codeInput) {
           await codeInput.type(twoFactorCode, { delay: 201 });
 
           await delay(1000);
-          const btnContinue = await page.waitForSelector(
-            "::-p-xpath(/html/body/div[1]/div/div[1]/div/div[2]/div/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/div[3]/div/div[1]/div/div)"
-          );
+          const btnContinue = await page
+            .waitForSelector(
+              "::-p-xpath(/html/body/div[1]/div/div[1]/div/div[2]/div/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/div[3]/div/div[1]/div/div | /html/body/div[1]/div/div[1]/div/div[2]/div/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/div[3]/div/div[1]/div/div/div/div[2])"
+            )
+            .catch(() => null);
 
           if (btnContinue) {
-            await btnContinue.click();
+            await btnContinue.evaluate((b) => b.click());
 
-            const btnTrust = await page.waitForSelector(
-              "::-p-xpath(/html/body/div[1]/div/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div[1]/div/div)"
-            );
+            const btnTrust = await page
+              .waitForSelector(
+                "::-p-xpath(/html/body/div[1]/div/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div[1]/div/div | /html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div[1]/div/div/div | /html/body/div[1]/div/div[1]/div/div[3]/div/div/div[1]/div[1]/div[2]/div/div/div[3]/div[1]/div/div/div/div[2])"
+              )
+              .catch(() => null);
 
             if (btnContinue) {
               await delay(2000);
-              await btnTrust.click();
+              await btnTrust.evaluate((b) => b.click());
             }
           }
         }
@@ -211,21 +253,30 @@ let objs = {};
         );
         await page.mouse.move(positionBtnContinue.x, positionBtnContinue.y);
         await delay(700);
-        await Promise.all([page.waitForNavigation(), btnContinue.click()]);
+        await Promise.all([
+          page.waitForNavigation(),
+          btnContinue.evaluate((b) => b.click()),
+        ]);
       } else if (btnIsMe) {
         const positionBtnIsMe = await handleGetPosition(
           "button[id='checkpointSubmitButton'][name='submit[This was me]']"
         );
         await page.mouse.move(positionBtnIsMe.x, positionBtnIsMe.y);
         await delay(700);
-        await Promise.all([page.waitForNavigation(), btnIsMe.click()]);
+        await Promise.all([
+          page.waitForNavigation(),
+          btnIsMe.evaluate((b) => b.click()),
+        ]);
       } else if (btnSkip) {
         const positionBtnSkip = await handleGetPosition(
           "button[id='checkpointSecondaryButton'][name='submit[Skip]']"
         );
         await page.mouse.move(positionBtnSkip.x, positionBtnSkip.y);
         await delay(700);
-        await Promise.all([page.waitForNavigation(), btnSkip.click()]);
+        await Promise.all([
+          page.waitForNavigation(),
+          btnSkip.evaluate((b) => b.click()),
+        ]);
       } else {
         break;
       }
@@ -266,7 +317,7 @@ let objs = {};
   for (let i = 0; i < validityId.length; i++) {
     await delay(10000);
     await page.goto(
-      `https://business.facebook.com/billing_hub/payment_settings/?asset_id=${validityId[i]}`
+      `https://business.facebook.com/billing_hub/payment_settings?asset_id=${validityId[i]}&business_id&placement=standalone&global_scope_id=${accounts.username}`
     );
 
     const menu = await page
@@ -277,83 +328,98 @@ let objs = {};
       .catch(() => null);
 
     if (menu) {
-      const moreBtn = await page.evaluateHandle(() => {
-        const elm = document.evaluate(
-          "/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[1]/div/div/div/div/div/div[3]/div[1]/div[5]/div/div[1]/div/div/div[2]/div/span",
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
-        ).singleNodeValue;
+      await delay(3000);
+      // const xpath = "";
 
-        return elm;
-      });
-
-      if (moreBtn) {
-        await delay(1000);
-        await moreBtn.click();
-        await delay(1000);
-      }
-
-      const setLimit = await page
+      const moreBtn = await page
         .waitForSelector(
-          "::-p-xpath(/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[2]/div/div/div[1]/div[1]/div/div/div/div/div)",
-          { visible: true, timeout: 3000 }
+          "::-p-xpath(/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[1]/div/div/div/div/div/div[3]/div[1]/div[4]/div/div[1]/div/div/div[2]/div/span | /html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[1]/div/div/div/div/div/div[3]/div[1]/div[5]/div/div[1]/div/div/div[2]/div/span)"
         )
         .catch(() => null);
 
-      if (setLimit) {
-        await delay(1500);
-        await setLimit.click();
+      if (moreBtn) {
+        await delay(1000);
+        await moreBtn.evaluate((b) => b.click());
 
-        const accountSpendLimitInput = await page
-          .waitForSelector("input[name='accountSpendLimitInput']", {
-            timeout: 3000,
-          })
+        await delay(1000);
+        const setLimit = await page
+          .waitForSelector(
+            "::-p-xpath(/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[2]/div/div/div[1]/div[1]/div/div/div/div/div/div)",
+            { visible: true, timeout: 3000 }
+          )
           .catch(() => null);
 
-        if (accountSpendLimitInput) {
-          await delay(400);
-          for (let i = 0; i <= 3; i++) {
-            await accountSpendLimitInput.press("Backspace", { delay: 201 });
+        if (setLimit) {
+          await delay(1500);
+          await setLimit.evaluate((b) => b.click());
+
+          await delay(500);
+          const btnSkip = await page
+            .waitForSelector("div[role-'button][aria-label='Bỏ qua']", {
+              timeout: 3000,
+            })
+            .catch(() => null);
+
+          if (btnSkip) {
+            await delay(500);
+            await btnSkip.evaluate((b) => b.click());
           }
-          await accountSpendLimitInput.type(limit, {
-            delay: 201,
-          });
-        }
-        while (true) {
-          const btnSave = await page
-            .waitForSelector("div[aria-label='Lưu'][role='button']", {
-              timeout: 1500,
-              visible: true,
-            })
+
+          const accountSpendLimitInput = await page
+            .waitForSelector(
+              "label[aria-label='Số tiền (không bao gồm thuế):'] input[type='text']",
+              {
+                timeout: 3000,
+              }
+            )
             .catch(() => null);
 
-          const btnClose = await page
-            .waitForSelector("div[aria-label='Đóng'][role='button']", {
-              timeout: 1500,
-              visible: true,
-            })
-            .catch(() => null);
+          if (accountSpendLimitInput) {
+            await delay(400);
+            for (let i = 0; i <= 12; i++) {
+              await accountSpendLimitInput.press("Backspace", { delay: 201 });
+            }
+            await accountSpendLimitInput.type(limit, {
+              delay: 201,
+            });
+            const btnSave = await page
+              .waitForSelector(
+                "div[aria-label='Lưu'][role='button'], div[aria-label='Save'][role='button']",
+                {
+                  timeout: 1500,
+                  visible: true,
+                }
+              )
+              .catch(() => null);
 
-          if (btnSave) {
-            const positionBtnSave = await handleGetPosition(
-              "div[aria-label='Lưu'][role='button']"
-            );
-            await page.mouse.move(positionBtnSave.x, positionBtnSave.y);
-            await delay(1000);
-            await btnSave.click();
-            await delay(1000);
-          } else if (btnClose) {
-            const positionBtnClose = await handleGetPosition(
-              "div[aria-label='Đóng'][role='button']"
-            );
-            await page.mouse.move(positionBtnClose.x, positionBtnClose.y);
-            await delay(1000);
-            await btnClose.click();
-            await delay(1000);
-          } else {
-            break;
+            if (btnSave) {
+              const positionBtnSave = await handleGetPosition(
+                "div[aria-label='Lưu'][role='button'], div[aria-label='Save'][role='button']"
+              );
+              await page.mouse.move(positionBtnSave.x, positionBtnSave.y);
+              await btnSave.evaluate((b) => b.click());
+              await delay(1000);
+            }
+
+            await delay(700);
+            const btnClose = await page
+              .waitForSelector(
+                "div[aria-label='Đóng'][role='button'], div[aria-label='Close'][role='button']",
+                {
+                  timeout: 1500,
+                  visible: true,
+                }
+              )
+              .catch(() => null);
+
+            if (btnClose) {
+              const positionBtnClose = await handleGetPosition(
+                "div[aria-label='Đóng'][role='button'], div[aria-label='Close'][role='button']"
+              );
+              await page.mouse.move(positionBtnClose.x, positionBtnClose.y);
+              await btnClose.evaluate((b) => b.click());
+              await delay(1000);
+            }
           }
         }
       }
@@ -369,41 +435,56 @@ let objs = {};
 
     if (addPay) {
       await delay(300); // Đợi một chút trước khi click
-      await addPay.click();
+      await addPay.evaluate((b) => b.click());
       console.log(1);
     }
 
     while (true) {
       await delay(700);
       const btnContinue = await page
-        .waitForSelector("div[aria-label='Tiếp'][role='button']", {
-          timeout: 3000,
-          visible: true,
-        })
+        .waitForSelector(
+          "div[aria-label='Tiếp'][role='button'], div[aria-label='Next'][role='button']",
+          {
+            timeout: 3000,
+            visible: true,
+          }
+        )
         .catch(() => null);
 
       if (btnContinue) {
         const positionBtnContinue = await handleGetPosition(
-          "div[aria-label='Tiếp'][role='button']"
+          "div[aria-label='Tiếp'][role='button'], div[aria-label='Next'][role='button']"
         );
         await page.mouse.move(positionBtnContinue.x, positionBtnContinue.y);
         await delay(300);
-        await btnContinue.click();
+        await btnContinue.evaluate((b) => b.click());
         await delay(1000);
       } else {
         break;
       }
     }
 
-    const nameCard = await page.waitForSelector("input[name='firstName']");
-    const numberCard = await page.waitForSelector("input[name='cardNumber']");
-    const dateCard = await page.waitForSelector("input[name='expiration']");
-    const codeCard = await page.waitForSelector("input[name='securityCode']");
-    const btnSave = await page.waitForSelector("div[aria-label='Lưu']");
+    const nameCard = await page
+      .waitForSelector("label[aria-label='Tên trên thẻ'] input[type='text']")
+      .catch(() => null);
+    const numberCard = await page
+      .waitForSelector("label[aria-label='Số thẻ'] input[type='text']")
+      .catch(() => null);
+    const dateCard = await page
+      .waitForSelector("label[aria-label='MM/YY'] input[type='text']")
+      .catch(() => null);
+    const codeCard = await page
+      .waitForSelector("label[aria-label='CVV'] input[type='password']")
+      .catch(() => null);
+    const btnSave = await page
+      .waitForSelector(
+        "div[aria-label='Lưu'], div[aria-label='Save'], div[aria-label='Save']"
+      )
+      .catch(() => null);
 
     if (nameCard) {
       const positionFieldNameCard = await handleGetPosition(
-        "input[name='firstName']"
+        "label[aria-label='Tên trên thẻ'] input[type='text']"
       );
       await page.mouse.move(positionFieldNameCard.x, positionFieldNameCard.y);
       // await page.focus("input[name='firstName']");
@@ -412,7 +493,7 @@ let objs = {};
     }
     if (numberCard) {
       const positionFieldNumberCard = await handleGetPosition(
-        "input[name='cardNumber']"
+        "label[aria-label='Số thẻ'] input[type='text']"
       );
       await page.mouse.move(
         positionFieldNumberCard.x,
@@ -424,7 +505,7 @@ let objs = {};
     }
     if (dateCard) {
       const positionFieldDateCard = await handleGetPosition(
-        "input[name='expiration']"
+        "label[aria-label='MM/YY'] input[type='text']"
       );
       await page.mouse.move(positionFieldDateCard.x, positionFieldDateCard.y);
       // await page.focus("input[name='expiration']");
@@ -433,7 +514,7 @@ let objs = {};
     }
     if (codeCard) {
       const positionFieldCodeCard = await handleGetPosition(
-        "input[name='securityCode']"
+        "label[aria-label='CVV'] input[type='password']"
       );
       await page.mouse.move(positionFieldCodeCard.x, positionFieldCodeCard.y);
       // await page.focus("input[name='securityCode']");
@@ -442,19 +523,20 @@ let objs = {};
     }
 
     if (btnSave) {
-      const positionBtnSave = await handleGetPosition("div[aria-label='Lưu']");
+      const positionBtnSave = await handleGetPosition(
+        "div[aria-label='Lưu'], div[aria-label='Save'], div[aria-label='Save']"
+      );
       await page.mouse.move(positionBtnSave.x, positionBtnSave.y);
+      await btnSave.evaluate((b) => b.click());
       await delay(1000);
-      await btnSave.click();
     }
 
-    await delay(20000);
+    await delay(25000);
 
     while (true) {
-      console.log(4);
       const notSuccess = await page
         .waitForSelector(
-          "::-p-xpath(//span[contains(text(), 'Không thể lưu phương thức thanh toán')])",
+          '::-p-xpath(//span[contains(text(), "Không thể lưu phương thức thanh toán") or contains(text(), "Đã xảy ra lỗi")])',
           {
             visible: true,
             timeout: 3500,
@@ -464,173 +546,217 @@ let objs = {};
 
       if (notSuccess) {
         await delay(400);
-
         await handleEnterCard();
 
-        const nameCard = await page.waitForSelector("input[name='firstName']");
-        const numberCard = await page.waitForSelector(
-          "input[name='cardNumber']"
+        const nameCard = await page
+          .waitForSelector(
+            "label[aria-label='Tên trên thẻ'] input[type='text']"
+          )
+          .catch(() => null);
+        const numberCard = await page
+          .waitForSelector("label[aria-label='Số thẻ'] input[type='text']")
+          .catch(() => null);
+        const dateCard = await page
+          .waitForSelector("label[aria-label='MM/YY'] input[type='text']")
+          .catch(() => null);
+        const codeCard = await page
+          .waitForSelector("label[aria-label='CVV'] input[type='password']")
+          .catch(() => null);
+        const btnSave = await page.waitForSelector(
+          "div[aria-label='Lưu'], div[aria-label='Save']"
         );
-        const dateCard = await page.waitForSelector("input[name='expiration']");
-        const codeCard = await page.waitForSelector(
-          "input[name='securityCode']"
-        );
-        const btnSave = await page.waitForSelector("div[aria-label='Lưu']");
 
         if (nameCard) {
           const positionFieldNameCard = await handleGetPosition(
-            "input[name='firstName']"
+            "label[aria-label='Tên trên thẻ'] input[type='text']"
           );
           await page.mouse.move(
             positionFieldNameCard.x,
             positionFieldNameCard.y
           );
-          // await page.focus("input[name='firstName']");
+          // await page.focus("label[aria-label='Tên trên thẻ'] input[type='text']");
+          for (let i = 0; i < objs.nameCard.length; i++) {
+            await nameCard.press("Backspace", {
+              delay: 301,
+            });
+          }
           await delay(500);
           await nameCard.type(objs.nameCard, { delay: 101 });
         }
         if (numberCard) {
           const positionFieldNumberCard = await handleGetPosition(
-            "input[name='cardNumber']"
+            "label[aria-label='Số thẻ'] input[type='text']"
           );
           await page.mouse.move(
             positionFieldNumberCard.x,
             positionFieldNumberCard.y
           );
-          // await page.focus("input[name='cardNumber']");
+          // await page.focus("label[aria-label='Số thẻ'] input[type='text']");
+          for (let i = 0; i < objs.numberCard.length; i++) {
+            await numberCard.press("Backspace", {
+              delay: 301,
+            });
+          }
           await delay(500);
           await numberCard.type(objs.numberCard, { delay: 301 });
         }
         if (dateCard) {
           const positionFieldDateCard = await handleGetPosition(
-            "input[name='expiration']"
+            "label[aria-label='MM/YY'] input[type='text']"
           );
           await page.mouse.move(
             positionFieldDateCard.x,
             positionFieldDateCard.y
           );
-          // await page.focus("input[name='expiration']");
+          // await page.focus("label[aria-label='MM/YY'] input[type='text']");
+          for (let i = 0; i <= objs.dateCard.length; i++) {
+            await dateCard.press("Backspace", {
+              delay: 301,
+            });
+          }
           await delay(500);
           await dateCard.type(objs.dateCard, { delay: 101 });
         }
         if (codeCard) {
           const positionFieldCodeCard = await handleGetPosition(
-            "input[name='securityCode']"
+            "label[aria-label='CVV'] input[type='password']"
           );
           await page.mouse.move(
             positionFieldCodeCard.x,
             positionFieldCodeCard.y
           );
-          // await page.focus("input[name='securityCode']");
+          // await page.focus("label[aria-label='CVV'] input[type='password']");
+          for (let i = 0; i < objs.codeCard.length; i++) {
+            await codeCard.press("Backspace", {
+              delay: 301,
+            });
+          }
           await delay(500);
           await codeCard.type(objs.codeCard, { delay: 201 });
         }
 
         if (btnSave) {
           const positionBtnSave = await handleGetPosition(
-            "div[aria-label='Lưu']"
+            "div[aria-label='Lưu'], div[aria-label='Save']"
           );
           await page.mouse.move(positionBtnSave.x, positionBtnSave.y);
+          await btnSave.evaluate((b) => b.click());
           await delay(1000);
-          await btnSave.click();
         }
 
-        await delay(20000);
+        await delay(25000);
       } else {
-        const btnClose = await page.waitForSelector(
-          "div[aria-label='Đóng'][role='button']",
-          {
-            visible: true,
-          }
-        );
-
-        btnClose.click();
-
         await delay(1000);
         break;
       }
     }
 
-    await delay(900);
-    // const xpath = "";
-
-    const moreBtn = await page.evaluateHandle(() => {
-      const elm = document.evaluate(
-        "/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[1]/div/div/div/div/div/div[3]/div[1]/div[5]/div/div[1]/div/div/div[2]/div/span",
-        document,
-        null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-      ).singleNodeValue;
-
-      return elm;
-    });
-
-    if (moreBtn) {
-      await delay(1000);
-      await moreBtn.click();
-      await delay(1000);
-    }
-
-    const setLimit = await page
+    const btnClose = await page
       .waitForSelector(
-        "::-p-xpath(/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[2]/div/div/div[1]/div[1]/div/div/div/div/div)",
-        { visible: true, timeout: 3000 }
+        "div[aria-label='Đóng'][role='button'], div[aria-label='Close'][role='button']",
+        {
+          visible: true,
+          timeout: 1500,
+        }
       )
       .catch(() => null);
 
-    if (setLimit) {
-      await delay(1500);
-      await setLimit.click();
+    if (btnClose) {
+      await delay(1000);
+      btnClose.evaluate((b) => b.click());
+    }
 
-      const accountSpendLimitInput = await page
-        .waitForSelector("input[name='accountSpendLimitInput']", {
-          timeout: 3000,
-        })
+    await delay(1500);
+
+    const moreBtn = await page
+      .waitForSelector(
+        "::-p-xpath(/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[1]/div/div/div/div/div/div[3]/div[1]/div[4]/div/div[1]/div/div/div[2]/div/span | /html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[1]/div/div/div/div/div/div[3]/div[1]/div[5]/div/div[1]/div/div/div[2]/div/span)"
+      )
+      .catch(() => null);
+
+    if (moreBtn) {
+      await delay(1000);
+      await moreBtn.evaluate((b) => b.click());
+
+      await delay(1000);
+      const setLimit = await page
+        .waitForSelector(
+          "::-p-xpath(/html/body/div[1]/div[1]/div/span/div[1]/div[2]/div/div/div/div/div/div/div[2]/span/div/div/div[2]/div/div/div[1]/div[1]/div/div/div/div/div/div)",
+          { visible: true, timeout: 3000 }
+        )
         .catch(() => null);
 
-      if (accountSpendLimitInput) {
-        await delay(400);
-        for (let i = 0; i <= 3; i++) {
-          await accountSpendLimitInput.press("Backspace", { delay: 201 });
+      if (setLimit) {
+        await delay(1500);
+        await setLimit.evaluate((b) => b.click());
+
+        await delay(500);
+        const btnSkip = await page
+          .waitForSelector("div[role-'button][aria-label='Bỏ qua']", {
+            timeout: 3000,
+          })
+          .catch(() => null);
+
+        if (btnSkip) {
+          await delay(500);
+          await btnSkip.evaluate((b) => b.click());
         }
-        await accountSpendLimitInput.type(limit, {
-          delay: 201,
-        });
-      }
-      while (true) {
-        const btnSave = await page
-          .waitForSelector("div[aria-label='Lưu'][role='button']", {
-            timeout: 1500,
-            visible: true,
-          })
+
+        const accountSpendLimitInput = await page
+          .waitForSelector(
+            "label[aria-label='Số tiền (không bao gồm thuế):'] input[type='text']",
+            {
+              timeout: 3000,
+            }
+          )
           .catch(() => null);
 
-        const btnClose = await page
-          .waitForSelector("div[aria-label='Đóng'][role='button']", {
-            timeout: 1500,
-            visible: true,
-          })
-          .catch(() => null);
+        if (accountSpendLimitInput) {
+          await delay(400);
+          for (let i = 0; i <= 12; i++) {
+            await accountSpendLimitInput.press("Backspace", { delay: 201 });
+          }
+          await accountSpendLimitInput.type(limit, {
+            delay: 201,
+          });
+          const btnSave = await page
+            .waitForSelector(
+              "div[aria-label='Lưu'][role='button'], div[aria-label='Save'][role='button']",
+              {
+                timeout: 1500,
+                visible: true,
+              }
+            )
+            .catch(() => null);
 
-        if (btnSave) {
-          const positionBtnSave = await handleGetPosition(
-            "div[aria-label='Lưu'][role='button']"
-          );
-          await page.mouse.move(positionBtnSave.x, positionBtnSave.y);
-          await delay(1000);
-          await btnSave.click();
-          await delay(1000);
-        } else if (btnClose) {
-          const positionBtnClose = await handleGetPosition(
-            "div[aria-label='Đóng'][role='button']"
-          );
-          await page.mouse.move(positionBtnClose.x, positionBtnClose.y);
-          await delay(1000);
-          await btnClose.click();
-          await delay(1000);
-        } else {
-          break;
+          if (btnSave) {
+            const positionBtnSave = await handleGetPosition(
+              "div[aria-label='Lưu'][role='button'], div[aria-label='Save'][role='button']"
+            );
+            await page.mouse.move(positionBtnSave.x, positionBtnSave.y);
+            await btnSave.evaluate((b) => b.click());
+            await delay(1000);
+          }
+
+          await delay(700);
+          const btnClose = await page
+            .waitForSelector(
+              "div[aria-label='Đóng'][role='button'], div[aria-label='Close'][role='button']",
+              {
+                timeout: 1500,
+                visible: true,
+              }
+            )
+            .catch(() => null);
+
+          if (btnClose) {
+            const positionBtnClose = await handleGetPosition(
+              "div[aria-label='Đóng'][role='button'], div[aria-label='Close'][role='button']"
+            );
+            await page.mouse.move(positionBtnClose.x, positionBtnClose.y);
+            await btnClose.evaluate((b) => b.click());
+            await delay(1000);
+          }
         }
       }
     }
